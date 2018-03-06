@@ -1,0 +1,41 @@
+-- CSC 370 - Spring 2018
+-- Assignment 3: Queries for Question 1 (imdb)
+-- Name:
+-- Student ID:
+
+-- Place your query for each sub-question in the appropriate position
+-- below. Do not modify or remove the '-- Question 1x --' header before
+-- each question.
+
+
+-- Question 1a --
+
+with
+	data as (select * 
+				from titles natural join title_names natural join ratings
+				where titles.year between 2000 and 2017
+					and votes >= 10000
+					and is_primary = true
+					and title_type = 'movie'
+				order by name),
+	max_rating as (select year, max(rating) as rating 
+					from data
+					group by year)
+	select name, year, rating, votes 
+		from max_rating natural join data
+		order by year;
+
+-- Question 1b --
+
+
+//TIMEOUT WHEN TRYING TO DO FINAL NATURAL JOIN STATEMENT
+
+
+		with 
+			s as (select * from title_names natural join titles 
+							where is_primary = true and title_type = 'tvSeries'),
+			s_name as (select title_id, name, series_id from s natural join tv_series),
+			suma as (select title_id, series_id, sum(episode_number) from series_episodes
+							group by title_id, series_id),
+			suma_greater as (select * from suma where sum > 6000)
+			select * from suma_greater natural join title_names

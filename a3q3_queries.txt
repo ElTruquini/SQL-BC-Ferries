@@ -1,0 +1,21 @@
+-- CSC 370 - Spring 2018
+-- Assignment 3: Queries for Question 3 (vwsn_1year)
+-- Name:
+-- Student ID:
+
+-- Place your query for each sub-question in the appropriate position
+-- below. Do not modify or remove the '-- Question 3x --' header before
+-- each question.
+
+
+-- Question 3a --
+
+-- Question 3b --
+
+-- Question 3c --
+
+-- Question 3d --
+
+-- Question 3e --
+
+

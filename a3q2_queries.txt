@@ -1,0 +1,78 @@
+-- CSC 370 - Spring 2018
+-- Assignment 3: Queries for Question 2 (ferries)
+-- Name: Daniel Olaya Moran	
+-- Student ID: V00855054
+
+-- Place your query for each sub-question in the appropriate position
+-- below. Do not modify or remove the '-- Question 2x --' header before
+-- each question.
+
+
+-- Question 2a --
+
+////////***********	How to remove duplicates?
+	
+with 
+	de_source as (select vessel_name as vessel1, source_port, destination_port, scheduled_departure 
+					from fleet natural join sailings),
+	a_source as (select vessel_name as vessel2, source_port, destination_port, scheduled_departure
+					from fleet natural join sailings),				
+	pairings_source as (select * from de_source 
+						inner join a_source 
+						on a_source.destination_port = de_source.source_port 
+							and a_source.source_port = de_source.destination_port
+							and de_source.scheduled_departure = a_source.scheduled_departure),	
+	pairs as (select distinct vessel1, vessel2, count(vessel1) as cnt from pairings_source
+				group by vessel1, vessel2)		
+	select vessel1, vessel2, cnt
+	from pairs
+	
+					
+
+
+-- Question 2b --
+
+with
+	duration as (select route_number, nominal_duration, scheduled_departure, arrival, 
+						(extract(epoch from arrival) - extract(epoch from scheduled_departure))/60 as duration_minutes	
+				from routes natural join sailings)
+	select route_number, nominal_duration, avg(duration_minutes) 
+	from duration
+	group by route_number, nominal_duration
+	order by route_number;
+
+-- Question 2c --
+
+-- Question 2d --
+
+with 
+	sailings1 as (select vessel_name, scheduled_departure, arrival, count(arrival) as trips 
+			from fleet natural join sailings
+			group by vessel_name, scheduled_departure, arrival),
+	vessel_sailings as (select sum(trips) as total_sailings, vessel_name 
+						from sailings1
+						group by vessel_name),
+	duration as (select vessel_name, scheduled_departure, arrival, nominal_duration, 
+					((extract(epoch from arrival) - extract (epoch from scheduled_departure))/60) as duration_minutes 
+				from fleet natural join sailings natural join routes),
+	lates as (select vessel_name, duration_minutes 
+				from duration 
+				where duration_minutes-nominal_duration >= 5),
+	vessel_lates as (select vessel_name, count(duration_minutes) as late_sailings
+					from lates
+					group by vessel_name),
+	fraction as (select vessel_name, total_sailings, late_sailings, (late_sailings/total_sailings) as late_fraction
+					from vessel_lates natural join vessel_sailings)
+	select * 
+	from fraction
+	order by vessel_name;	
+
+
+
+-- Question 2e --
+
+-- Question 2f --
+
+-- Question 2g --
+
+
