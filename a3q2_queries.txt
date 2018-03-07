@@ -41,7 +41,30 @@ with
 	group by route_number, nominal_duration
 	order by route_number;
 
+
 -- Question 2c --
+
+	with
+	input as (select route_number as route, scheduled_departure, arrival, nominal_duration,
+					(extract (epoch from arrival) - extract(epoch from scheduled_departure))/60 as travel_time,
+					((extract (epoch from arrival) - extract(epoch from scheduled_departure))/60)-nominal_duration as diff,
+					extract(month from scheduled_departure)::int as month,
+					date_trunc('day',scheduled_departure)::date as sailing_date 
+				from routes natural join sailings),
+	ontime as (select month, sailing_date from input
+					where diff < 5 and route = 1),
+	lates as (select month, sailing_date from input
+				where diff >= 5 and route = 1),
+	days as (select * from ontime
+				except
+			select * from lates
+			order by month)
+	select month, count(sailing_date) from days group by month order by month;
+
+
+
+
+
 
 -- Question 2d --
 
@@ -70,6 +93,37 @@ with
 
 
 -- Question 2e --
+
+////////////////////////////////////////////////////////////////////////////////
+How to deal with the null values that I get at the end of next_sailing_date in over function, route1 and 4
+///////////////////////////////////////////////////////////////////////////////
+	with
+	input as (select route_number as route, scheduled_departure, arrival, nominal_duration,
+					(extract (epoch from arrival) - extract(epoch from scheduled_departure))/60 as travel_time,
+					((extract (epoch from arrival) - extract(epoch from scheduled_departure))/60)-nominal_duration as diff,
+					extract(month from scheduled_departure)::int as month,
+					date_trunc('day',scheduled_departure)::date as sailing_date 
+				from routes natural join sailings),
+	days_ontime as (select route, sailing_date
+					from input 
+					where diff < 5),		
+	days_late as (select route, sailing_date
+					from input 
+					where diff >= 5),
+	pairing as (select distinct route, sailing_date, min(sailing_date)
+					over (partition by route
+						order by sailing_date
+						rows between 1 following and unbounded following) as next_sailing_date
+					from (select distinct * from days_late)as T1
+					order by route, sailing_date)
+	select *, (next_sailing_date-sailing_date-1) from pairing
+					
+	select route, max((next_sailing_date-sailing_date-1)) as days_without_a_late_sailing 
+		from pairing
+		group by route
+		order by route
+		
+
 
 -- Question 2f --
 

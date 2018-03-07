@@ -1,7 +1,7 @@
 -- CSC 370 - Spring 2018
 -- Assignment 3: Queries for Question 1 (imdb)
--- Name:
--- Student ID:
+-- Name: Daniel Olaya Moran	
+-- Student ID:	V00855054	
 
 -- Place your query for each sub-question in the appropriate position
 -- below. Do not modify or remove the '-- Question 1x --' header before
@@ -23,13 +23,12 @@ with
 					group by year)
 	select name, year, rating, votes 
 		from max_rating natural join data
-		order by year;
+order by year;
 
 -- Question 1b --
 
 
 //TIMEOUT WHEN TRYING TO DO FINAL NATURAL JOIN STATEMENT
-
 
 		with 
 			s as (select * from title_names natural join titles 
@@ -38,4 +37,5 @@ with
 			suma as (select title_id, series_id, sum(episode_number) from series_episodes
 							group by title_id, series_id),
 			suma_greater as (select * from suma where sum > 6000)
-			select * from suma_greater natural join title_names
+select * from suma_greater natural join title_names
+
