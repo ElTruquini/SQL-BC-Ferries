@@ -127,6 +127,41 @@ How to deal with the null values that I get at the end of next_sailing_date in o
 
 -- Question 2f --
 
+Raw data, there is no sailings from route 4 on 2018-01-23 but result considers it in range
+
+Idea, take set of days on time except days late doesnt work because of the days that it skipped sailings
+
+
 -- Question 2g --
 
 
+	with
+	input as (select vessel_name as vessel, route_number as route, scheduled_departure, actual_departure, arrival, nominal_duration,
+					(extract (epoch from actual_departure) - extract(epoch from scheduled_departure))/60 as departure_diff,
+					(extract (epoch from arrival) - extract(epoch from actual_departure))/60 as travel_time,
+					((extract (epoch from arrival) - (extract(epoch from scheduled_departure))+nominal_duration)/60)-nominal_duration as travel_diff
+				from routes natural join sailings natural join fleet),		
+	late_departures as (select vessel, scheduled_departure, actual_departure, departure_diff, nominal_duration, arrival, travel_diff 
+							from input
+							where departure_diff >= 15 and travel_diff <= 5),
+	made_ups as (select vessel, count(vessel)
+					from late_departures 
+					group by vessel)
+	select * 
+		from made_ups
+		order by vessel;
+
+
+
+		////////////////////option 2
+
+		not getting results either
+
+			with
+	input as (select vessel_name as vessel, route_number as route, scheduled_departure as scheduled, actual_departure, arrival, nominal_duration as nominal,
+				(extract (epoch from scheduled_departure))/60 + nominal_duration as planned_arrival,
+				(extract (epoch from actual_departure))/60 + (extract (epoch from arrival)-extract(epoch from actual_departure))/60 as actual_arrival,
+				(extract (epoch from actual_departure) - extract(epoch from scheduled_departure))/60 as departure_diff
+			from routes natural join sailings natural join fleet)		
+select make_date() from input
+	where departure_diff >=15 
