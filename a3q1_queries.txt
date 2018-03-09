@@ -28,7 +28,7 @@ order by year;
 -- Question 1b --
 
 
-//TIMEOUT WHEN TRYING TO DO FINAL NATURAL JOIN STATEMENT
+****************************************************
 
 		with 
 			s as (select * from title_names natural join titles 
@@ -39,3 +39,20 @@ order by year;
 			suma_greater as (select * from suma where sum > 6000)
 select * from suma_greater natural join title_names
 
+select * from title_names natural join titles where name = 'Days of Our Lives'  --title_id: 58796, tvSeries
+
+select * from title_names natural join titles where name = 'EastEnders'  --title_id: 88512, tvSeries
+
+select * from title_names natural join titles where name = 'The Bold and the Beautiful'  --title_id: 92325, tvSeries
+
+select * from title_names natural join titles where name = 'The Young and the Restless'  --title_id: 69658, tvSeries
+
+
+****************************************************
+
+//Count always gets me 139450
+
+select title_id, count(series_id) over (partition by title_id order by title_id
+											rows between unbounded preceding and unbounded following)
+	from titles natural join tv_series 
+	where title_type = 'tvSeries'

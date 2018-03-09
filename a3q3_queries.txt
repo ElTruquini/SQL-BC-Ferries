@@ -1,7 +1,7 @@
 -- CSC 370 - Spring 2018
 -- Assignment 3: Queries for Question 3 (vwsn_1year)
--- Name:
--- Student ID:
+-- Name: Daniel Olaya Moran 
+-- Student ID: V00855054
 
 -- Place your query for each sub-question in the appropriate position
 -- below. Do not modify or remove the '-- Question 3x --' header before
@@ -10,11 +10,63 @@
 
 -- Question 3a --
 
+with
+	x as (select max(temperature)
+				from observations),
+	 y as (select station_id, temperature, observation_time 
+	 			from x 
+				inner join observations on max = temperature )				
+	select station_id, stations.name, temperature, observation_time from y inner join stations on y.station_id = stations.id;
+
 -- Question 3b --
+
+with
+	max_per_id as(select id, max(temperature) as max_temp
+					from stations inner join observations on station_id = id
+					where id <= 10
+					group by id)
+	select max_per_id.id, name, temperature, observation_time 
+		from max_per_id inner join observations on station_id = id natural join stations
+		where max_temp = temperature
+		order by max_per_id;
+		
+
 
 -- Question 3c --
 
+with 
+	_all as (select station_id as id, observation_time as observations
+					from observations),
+	_all_id as (select distinct id  
+					from _all),
+	_month as (select station_id as id, observation_time as observations, extract(month from observation_time) as month
+					from observations),
+	_june as (select id, observations 
+					from _month 
+					where month = 6),
+	_june_id as (select distinct id 
+					from _june),
+	_list as (select * from _all_id
+				except 
+			select * from _june_id
+				order by id)
+	select id, name from _list natural join stations;
+
+
 -- Question 3d --
+
+	with
+		data as (select observation_time as obs, date_trunc('day', observation_time)::date as date_trunc, temperature as temp
+				from observations),
+		daily_avg1 as (select date_trunc, avg(temp) as avg_temp
+						from data
+						group by date_trunc),	
+		daily_avg2 as (select date_trunc, avg_temp, extract(month from date_trunc) as month, extract(year from date_trunc) as year		
+						from daily_avg1)
+		select year, month, avg_temp, rank() over(partition by month order by avg_temp desc)
+			from daily_avg2
+
+			....................
 
 -- Question 3e --
 
