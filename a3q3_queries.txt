@@ -62,11 +62,27 @@ with
 						from data
 						group by date_trunc),	
 		daily_avg2 as (select date_trunc, avg_temp, extract(month from date_trunc) as month, extract(year from date_trunc) as year		
-						from daily_avg1)
-		select year, month, avg_temp, rank() over(partition by month order by avg_temp desc)
-			from daily_avg2
-
-			....................
+						from daily_avg1),
+		hottest_rank as (select year, month, avg_temp, rank() over(partition by month order by avg_temp desc)
+							from daily_avg2),
+		hottest10 as (select year, month, avg_temp, rank
+							from hottest_rank
+							where rank <=10),
+		hottest10_average as (select year, month, avg(avg_temp) as hottest10_average
+								from hottest10
+								group by year, month),
+		coolest_rank as (select year, month, avg_temp, rank() over (partition by month order by avg_temp) 
+							from daily_avg2),
+		coolest10 as (select year, month, avg_temp, rank
+						from coolest_rank
+						where rank <= 10),
+		coolest10_average as (select year, month, avg(avg_temp) as coolest10_average
+								from coolest10
+								group by year, month)									
+		select hottest10_average.year, hottest10_average.month, hottest10_average, coolest10_average from coolest10_average
+		inner join hottest10_average 
+			on coolest10_average.year = hottest10_average.year and coolest10_average.month = hottest10_average.month
+		order by year, month;
 
 -- Question 3e --
 
