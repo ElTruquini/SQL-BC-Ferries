@@ -87,3 +87,24 @@ with
 -- Question 3e --
 
 
+	with
+		data as (select observation_time as obs, date_trunc('day', observation_time)::date as date_trunc, temperature as temp
+				from observations),
+		daily_avg1 as (select date_trunc, avg(temp) as avg_temp
+						from data
+						group by date_trunc),
+		prev as (select date_trunc, avg_temp, max(avg_temp) over (order by date_trunc, avg_temp
+															rows between 28 preceding and current row) as prev28
+					from daily_avg1),
+		case1 as (select date_trunc, avg_temp, prev28, case 
+															when date_trunc between '2017-02-01' and '2017-02-28' then 'NA'
+															when avg_temp < prev28 then 'true'
+															else 'false' 
+														end as conditional
+					from prev),
+		filtered_true as (select date_trunc, conditional 
+								from case1 where conditional = 'true' 
+								order by date_trunc)
+		select * from case1
+							
+		select extract(year from date_trunc)as year, extract(month from date_trunc) as month, conditional from filtered_true
