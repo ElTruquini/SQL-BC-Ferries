@@ -28,31 +28,17 @@ order by year;
 -- Question 1b --
 
 
-****************************************************
-
-		with 
-			s as (select * from title_names natural join titles 
-							where is_primary = true and title_type = 'tvSeries'),
-			s_name as (select title_id, name, series_id from s natural join tv_series),
-			suma as (select title_id, series_id, sum(episode_number) from series_episodes
-							group by title_id, series_id),
-			suma_greater as (select * from suma where sum > 6000)
-select * from suma_greater natural join title_names
-
-select * from title_names natural join titles where name = 'Days of Our Lives'  --title_id: 58796, tvSeries
-
-select * from title_names natural join titles where name = 'EastEnders'  --title_id: 88512, tvSeries
-
-select * from title_names natural join titles where name = 'The Bold and the Beautiful'  --title_id: 92325, tvSeries
-
-select * from title_names natural join titles where name = 'The Young and the Restless'  --title_id: 69658, tvSeries
-
-
-****************************************************
-
-//Count always gets me 139450
-
-select title_id, count(series_id) over (partition by title_id order by title_id
-											rows between unbounded preceding and unbounded following)
-	from titles natural join tv_series 
-	where title_type = 'tvSeries'
+	with
+		total_episodes as (select series_id, count(title_id) as episode_count
+							from series_episodes 
+							group by series_id),
+		greater_6000 as (select * 
+							from total_episodes
+							where episode_count >= 6000
+							order by episode_count desc),
+		join_titles as (select * 
+							from greater_6000
+								inner join titles on title_id = series_id),
+		names as (select title_id, name, episode_count 
+					from join_titles natural join title_names)
+		select name as series_name, episode_count from names;

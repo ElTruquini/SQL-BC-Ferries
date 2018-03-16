@@ -10,8 +10,6 @@
 
 -- Question 2a --
 
-////////***********	How to remove duplicates?
-	
 with 
 	de_source as (select vessel_name as vessel1, source_port, destination_port, scheduled_departure 
 					from fleet natural join sailings),
@@ -24,10 +22,10 @@ with
 							and de_source.scheduled_departure = a_source.scheduled_departure),	
 	pairs as (select distinct vessel1, vessel2, count(vessel1) as cnt from pairings_source
 				group by vessel1, vessel2)		
-	select vessel1, vessel2, cnt
-	from pairs
-	
-					
+	select vessel1, vessel2, cnt as num_pairing
+		from pairs
+		where vessel1 < vessel2
+		order by cnt desc;				
 
 
 -- Question 2b --
@@ -62,10 +60,6 @@ with
 	select month, count(sailing_date) from days group by month order by month;
 
 
-
-
-
-
 -- Question 2d --
 
 with 
@@ -94,9 +88,7 @@ with
 
 -- Question 2e --
 
-////////////////////////////////////////////////////////////////////////////////
-How to deal with the null values that I get at the end of next_sailing_date in over function, route1 and 4
-///////////////////////////////////////////////////////////////////////////////
+
 	with
 	input as (select route_number as route, scheduled_departure, arrival, nominal_duration,
 					(extract (epoch from arrival) - extract(epoch from scheduled_departure))/60 as travel_time,
@@ -104,25 +96,21 @@ How to deal with the null values that I get at the end of next_sailing_date in o
 					extract(month from scheduled_departure)::int as month,
 					date_trunc('day',scheduled_departure)::date as sailing_date 
 				from routes natural join sailings),
-	days_ontime as (select route, sailing_date
+	days_ontime as (select distinct route, sailing_date
 					from input 
 					where diff < 5),		
-	days_late as (select route, sailing_date
+	days_late as (select distinct route, sailing_date
 					from input 
 					where diff >= 5),
-	pairing as (select distinct route, sailing_date, min(sailing_date)
-					over (partition by route
-						order by sailing_date
-						rows between 1 following and unbounded following) as next_sailing_date
-					from (select distinct * from days_late)as T1
-					order by route, sailing_date)
-	select *, (next_sailing_date-sailing_date-1) from pairing
-					
-	select route, max((next_sailing_date-sailing_date-1)) as days_without_a_late_sailing 
-		from pairing
-		group by route
-		order by route
-		
+	diff as (select * from days_ontime 
+				except
+			select * from days_late),	
+	x as (select route, sailing_date, (sailing_date - (row_number() over (partition by route order by sailing_date) || ' days')::interval)::date as grouping_date
+			from diff),
+	y as (select * , dense_rank() over (partition by grouping_date, route order by sailing_date) as in_streak		
+			from x 
+			order by route)
+	select route, max(in_streak) from y group by route order by route;
 
 
 -- Question 2f --
@@ -134,13 +122,16 @@ Idea, take set of days on time except days late doesnt work because of the days 
 
 -- Question 2g --
 
-////************ error on given results? results by query seem correct
-
 with
 	input as (select vessel_name as vessel, route_number as route, scheduled_departure as scheduled, actual_departure, arrival, nominal_duration,
 				(extract(epoch from actual_departure) - extract(epoch from scheduled_departure))/60 as late_dep_mins,
 				(extract(epoch from scheduled_departure))/60+nominal_duration as expected_arrival,
 				(extract(epoch from arrival))/60 as arrival_epoch
-				from fleet natural join sailings natural join routes)
-	select vessel, scheduled, actual_departure, arrival, nominal_duration, late_dep_mins, expected_arrival, arrival_epoch from input
-		where late_dep_mins > 15 and arrival_epoch <= expected_arrival+5
+				from fleet natural join sailings natural join routes),
+	made_ups as (select vessel, scheduled, actual_departure, arrival, nominal_duration, late_dep_mins, expected_arrival, arrival_epoch 
+					from input
+					where late_dep_mins >= 15 and arrival_epoch <= expected_arrival+5)
+	select vessel, count(scheduled)
+		from made_ups
+		group by vessel
+		order by vessel;
